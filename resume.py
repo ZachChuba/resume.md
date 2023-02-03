@@ -79,7 +79,7 @@ def guess_chrome_path() -> str:
         guesses = CHROME_GUESSES_LINUX
     for guess in guesses:
         if os.path.exists(guess):
-            logging.info("Found Chrome or Chromium at " + guess)
+            logging.info(f"Found Chrome or Chromium at {guess}")
             return guess
     raise ValueError("Could not find Chrome. Please set CHROME_PATH.")
 
@@ -104,10 +104,10 @@ def make_html(md: str, prefix: str = "resume") -> str:
     Insert <prefix>.css if it exists.
     """
     try:
-        with open(prefix + ".css") as cssfp:
+        with open(f"{prefix}.css") as cssfp:
             css = cssfp.read()
     except FileNotFoundError:
-        print(prefix + ".css not found. Output will by unstyled.")
+        print(f"{prefix}.css not found. Output will by unstyled.")
         css = ""
     return "".join(
         (
@@ -124,16 +124,6 @@ def write_pdf(html: str, prefix: str = "resume", chrome: str = "") -> None:
     """
     chrome = chrome or guess_chrome_path()
     html64 = base64.b64encode(html.encode("utf-8"))
-    options = [
-        "--no-sandbox",
-        "--headless",
-        "--print-to-pdf-no-header",
-        "--enable-logging=stderr",
-        "--log-level=2",
-        "--in-process-gpu",
-        "--disable-gpu",
-    ]
-
     # Ideally we'd use tempfile.TemporaryDirectory here. We can't because
     # attempts to delete the tmpdir fail on Windows because Chrome creates a
     # file the python process does not have permission to delete. See
@@ -143,9 +133,16 @@ def write_pdf(html: str, prefix: str = "resume", chrome: str = "") -> None:
     # can use TemporaryDirectory with ignore_cleanup_errors=True as a context
     # manager.
     tmpdir = tempfile.mkdtemp(prefix="resume.md_")
-    options.append(f"--crash-dumps-dir={tmpdir}")
-    options.append(f"--user-data-dir={tmpdir}")
-
+    options = [
+        "--no-sandbox",
+        "--headless",
+        "--print-to-pdf-no-header",
+        "--enable-logging=stderr",
+        "--log-level=2",
+        "--in-process-gpu",
+        "--disable-gpu",
+        *(f"--crash-dumps-dir={tmpdir}", f"--user-data-dir={tmpdir}"),
+    ]
     try:
         subprocess.run(
             [
@@ -211,7 +208,7 @@ if __name__ == "__main__":
     html = make_html(md, prefix=prefix)
 
     if not args.no_html:
-        with open(prefix + ".html", "w", encoding="utf-8") as htmlfp:
+        with open(f"{prefix}.html", "w", encoding="utf-8") as htmlfp:
             htmlfp.write(html)
             logging.info(f"Wrote {htmlfp.name}")
 
